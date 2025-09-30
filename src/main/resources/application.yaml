@@ -5,3 +5,14 @@ server:
   port: 8123
   servlet:
     context-path: /api
+
+# springdoc-openapi????
+springdoc:
+  group-configs:
+    - group: 'default'
+      paths-to-match: '/**'
+      packages-to-scan: com.getian.getaicodemother.controller
+knife4j:
+  enable: true   #启动Knife4j的增强工具
+  setting:
+    language: zh_cn  #页面设置为中文
