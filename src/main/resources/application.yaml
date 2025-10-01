@@ -1,6 +1,11 @@
 spring:
   application:
     name: get-ai-code-mother
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: root
+    password: 200429
+    url: jdbc:mysql://localhost:3306/get_ai_code_mother
 server:
   port: 8123
   servlet:
@@ -16,3 +21,5 @@ knife4j:
   enable: true   #启动Knife4j的增强工具
   setting:
     language: zh_cn  #页面设置为中文
+
+
