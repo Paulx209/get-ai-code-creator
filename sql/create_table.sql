@@ -21,4 +21,9 @@ create table if not exists user
     INDEX idx_userName (userName)
 ) comment '用户' collate = utf8mb4_unicode_ci;
 
+-- 修改 userAccount 单字段唯一约束为 联合唯一约束
+ALTER TABLE user
+    DROP INDEX uk_userAccount, -- 删除原单字段约束
+    ADD UNIQUE KEY uk_userAccount_isDelete (userAccount, isDelete); -- 新增联合约束
+
 

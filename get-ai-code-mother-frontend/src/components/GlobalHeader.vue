@@ -22,7 +22,25 @@
       <!-- 右侧：用户操作区域 -->
       <a-col>
         <div class="user-login-status">
-          <a-button type="primary">登录</a-button>
+          <div v-if="loginUser.loginUser.id">
+            <a-dropdown>
+              <a-space>
+                <a-avatar :src="loginUser.loginUser.userAvatar" />
+                {{ loginUser.loginUser.userName ?? 'nothing' }}
+              </a-space>
+              <template #overlay>
+                <a-menu>
+                  <a-menu-item @click="doLogout">
+                    <LogoutOutlined />
+                    退出登录
+                  </a-menu-item>
+                </a-menu>
+              </template>
+            </a-dropdown>
+          </div>
+          <div v-else>
+            <a-button type="primary" href="/user/login">登录</a-button>
+          </div>
         </div>
       </a-col>
     </a-row>
@@ -30,9 +48,15 @@
 </template>
 
 <script setup lang="ts">
-import { h, ref } from 'vue'
+import { computed, h, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import type { MenuProps } from 'ant-design-vue'
+import { type MenuProps, message } from 'ant-design-vue'
+import { useLoginUserStore } from '@/stores/loginUser.ts'
+import { LogoutOutlined } from '@ant-design/icons-vue'
+import { logout } from '@/api/yonghuxiangguanjiekou.ts'
+import checkAccess from '@/checkAccess.ts'
+
+const loginUser = useLoginUserStore()
 
 const router = useRouter()
 // 当前选中菜单
@@ -42,12 +66,32 @@ router.afterEach((to, from, next) => {
   selectedKeys.value = [to.path]
 })
 
+const doLogout = async () => {
+  const res = await logout()
+  if(res.data.code ===0){
+    loginUser.setLoginUser({
+      username:'未登录',
+    })
+    message.success('退出登录成功')
+    await router.push({
+      'path':'/user/login',
+    })
+  }else{
+    message.error('退出登录失败：',+ res.data.message)
+  }
+}
+
 // 菜单配置项
-const menuItems = ref([
+const originItems = ref([
   {
     key: '/',
     label: '首页',
     title: '首页',
+  },
+  {
+    key:'/admin/userManage',
+    label:'用户管理',
+    'title':'用户管理'
   },
   {
     key: '/about',
@@ -60,6 +104,27 @@ const menuItems = ref([
     title: '朝花智绘图库',
   },
 ])
+
+//过滤菜单项
+const filterMenus=(menus = [] as MenuProps['items']) =>{
+  return menus.filter((menu) => {
+    // 根据menu 获取 route
+    const route =menuToRouteItem(menu)
+    if (route === undefined) {
+      return true
+    }
+    //如果该菜单为隐藏的话
+    if(route ?.meta ?.hideInMenu){
+      return false
+    }
+    return checkAccess(loginUser.loginUser,route?.meta?.access)
+  })
+}
+const  menuToRouteItem = function(menu){
+  return router.getRoutes().find((route) => route.path === menu.key)
+}
+
+const menuItems=computed<MenuProps['items']>(()=>filterMenus(originItems.value))
 
 // 处理菜单点击
 const handleMenuClick: MenuProps['onClick'] = (e) => {

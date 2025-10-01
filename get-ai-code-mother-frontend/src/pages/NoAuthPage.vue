@@ -1,9 +1,14 @@
 <template>
-  <h1>你好</h1>
+  <h1>
+    你没有权限！
+  </h1>
 </template>
 
+
 <script setup lang="ts">
+
 </script>
+
 
 <style scoped>
 

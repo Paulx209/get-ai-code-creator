@@ -25,7 +25,7 @@ import com.getian.getaicodemother.service.UserService;
 import java.util.List;
 
 /**
- * 用户 控制层。
+ * 用户控制层。
  *
  * @author sonicge
  */
