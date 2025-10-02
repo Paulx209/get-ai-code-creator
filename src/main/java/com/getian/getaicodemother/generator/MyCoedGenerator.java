@@ -9,7 +9,7 @@ import com.zaxxer.hikari.HikariDataSource;
 import java.util.Map;
 
 public class MyCoedGenerator {
-    private static final String[] TABLES_NAME = {"user"};
+    private static final String[] TABLES_NAME = {"app"};
 
     public static void main(String[] args) {
         //配置数据源
