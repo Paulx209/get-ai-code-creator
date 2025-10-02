@@ -22,6 +22,7 @@ import com.getian.getaicodemother.service.UserService;
 
 import com.mybatisflex.core.paginate.Page;
 import com.mybatisflex.core.query.QueryWrapper;
+import dev.langchain4j.agent.tool.P;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
@@ -30,6 +31,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.log4j.Log4j2;
 
 import org.springframework.beans.BeanUtils;
+import org.springframework.boot.autoconfigure.graphql.GraphQlProperties;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 
@@ -193,7 +195,7 @@ public class AppController {
         return ResultUtils.success(removeFlag);
     }
 
-    @PostMapping("/admin/upadte")
+    @PostMapping("/admin/update")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     @Operation(summary = "管理员更新应用信息")
     public BaseResponse<Boolean> adminUpdate(@RequestBody AppAdminUpdateRequest appAdminUpdateRequest,HttpServletRequest request){
@@ -210,6 +212,22 @@ public class AppController {
         return ResultUtils.success(res);
     }
 
+    @PostMapping("/admin/list/page/vo")
+    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+    @Operation(summary = "管理员分页获取应用列表")
+    public BaseResponse<Page<AppVO>> adminGetAppVOListPage(@RequestBody AppQueryRequest appQueryRequest, HttpServletRequest request){
+        log.info("管理员分页获取应用列表:{}",appQueryRequest);
+        ThrowUtils.throwIf(appQueryRequest ==null,ErrorCode.PARAMS_ERROR,"参数为空");
+        long pageSize= appQueryRequest.getPageSize();
+        long pageNum =appQueryRequest.getPageNum();
+        QueryWrapper appQueryWrapper = appService.getAppQueryWrapper(appQueryRequest);
+        Page<App> resPage=appService.page(new Page<>(pageSize,pageNum),appQueryWrapper);
+        Page<AppVO> ansPage=new Page<>(pageSize,pageNum,resPage.getTotalRow());
+        List<AppVO> appVOList = appService.getAppVOList(resPage.getRecords());
+        ansPage.setRecords(appVOList);
+        return ResultUtils.success(ansPage);
+    }
+
     /**
      * 管理员根据 id 获取应用详情
      * @param id 应用 id
@@ -217,6 +235,7 @@ public class AppController {
      */
     @GetMapping("/admin/get/vo")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+    @Operation(summary = "管理员根据 id 获取应用详情")
     public BaseResponse<AppVO> getAppVOByIdByAdmin(long id) {
         ThrowUtils.throwIf(id <= 0, ErrorCode.PARAMS_ERROR);
         // 查询数据库
@@ -225,7 +244,5 @@ public class AppController {
         // 获取封装类
         return ResultUtils.success(appService.getAppVO(app));
     }
-
-
 
 }
