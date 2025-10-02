@@ -6,10 +6,15 @@ spring:
     username: root
     password: 200429
     url: jdbc:mysql://localhost:3306/get_ai_code_mother
+  profiles:
+    active: local
+  lifecycle:
+    timeout-per-shutdown-phase: 60s
 server:
   port: 8123
   servlet:
     context-path: /api
+
 
 # springdoc-openapi????
 springdoc:
