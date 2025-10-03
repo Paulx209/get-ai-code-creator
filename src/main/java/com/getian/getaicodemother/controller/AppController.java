@@ -2,6 +2,8 @@ package com.getian.getaicodemother.controller;
 
 
 import cn.hutool.core.util.StrUtil;
+import cn.hutool.json.JSONUtil;
+import com.fasterxml.jackson.annotation.JsonUnwrapped;
 import com.getian.getaicodemother.annotation.AuthCheck;
 import com.getian.getaicodemother.common.BaseResponse;
 import com.getian.getaicodemother.common.DeleteRequest;
@@ -33,15 +35,18 @@ import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.BeanUtils;
 import org.springframework.boot.autoconfigure.graphql.GraphQlProperties;
 import org.springframework.http.MediaType;
+import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.bind.annotation.*;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import com.getian.getaicodemother.model.entity.App;
 import com.getian.getaicodemother.service.AppService;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author sonicge
@@ -243,14 +248,24 @@ public class AppController {
 
     @GetMapping(value = "/chat/gen/code",produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     @Operation(summary = "应用聊天生成代码")
-    public Flux<String> chatToGenCode(@RequestParam("appId") Long appId,@RequestParam("message") String message,HttpServletRequest request){
+    public Flux<ServerSentEvent<String>> chatToGenCode(@RequestParam("appId") Long appId,@RequestParam("message") String message,HttpServletRequest request){
         log.info("应用聊天生成代码:{},{}",appId,message);
         ThrowUtils.throwIf(appId == null || appId <0 ,ErrorCode.PARAMS_ERROR,"应用id不合法");
         ThrowUtils.throwIf(StrUtil.isBlank(message),ErrorCode.PARAMS_ERROR,"消息不合法");
         //获取当前登录用户
         User loginUser = userService.getCurrentLoginUser(request);
         Flux<String> codeStream= appService.chatToGenCode(appId, message, loginUser);
-        return codeStream;
+        return codeStream.map(chunk -> {
+            Map<String,String> map=Map.of("v",chunk);
+            String jsonStr = JSONUtil.toJsonStr(map);
+            return ServerSentEvent.<String>builder().data(jsonStr).build();
+            //当前面所有的流数据都发送完后，再发送一个don，只包含单个元素的响应式流。
+        }).concatWith(Mono.just(
+                ServerSentEvent.<String>builder()
+                        .event("done")
+                        .data("")
+                        .build()
+        ));
     }
 
 }
