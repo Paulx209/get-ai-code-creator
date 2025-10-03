@@ -21,7 +21,7 @@
         name="userPassword"
         :rules="[
           { required: true, message: '请输入密码' },
-          { min: 8, message: '密码不能小于 8 位' },
+          { min: 8, message: '密码长度不能小于 8 位' },
         ]"
       >
         <a-input-password v-model:value="formState.userPassword" placeholder="请输入密码" />
@@ -67,8 +67,10 @@ const handleSubmit = async (values: any) => {
 
 <style scoped>
 #userLoginPage {
-  max-width: 360px;
-  margin: 0 auto;
+  background: white;
+  max-width: 720px;
+  padding: 24px;
+  margin: 24px auto;
 }
 
 .title {
@@ -83,9 +85,9 @@ const handleSubmit = async (values: any) => {
 }
 
 .tips {
-  margin-bottom: 16px;
+  text-align: right;
   color: #bbb;
   font-size: 13px;
-  text-align: right;
+  margin-bottom: 16px;
 }
 </style>

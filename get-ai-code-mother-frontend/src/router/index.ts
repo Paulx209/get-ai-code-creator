@@ -15,17 +15,17 @@ const router = createRouter({
     },
     {
       path:'/user/login',
-      name:'用户登录页面',
+      name:'用户登录',
       component: UserLoginPage,
     },
     {
       path:'/user/register',
-      name:'用户注册页面',
+      name:'用户注册',
       component: UserRegisterPage,
     },
     {
       path:'/admin/userManage',
-      name:'用户管理页面',
+      name:'用户管理',
       component: UserManagePage,
       meta:{
         access: accessEnum.ADMIN
@@ -33,9 +33,24 @@ const router = createRouter({
     },
     {
       path:'/noAuth',
-      name:'无权限页面',
+      name:'无权限',
       component: NoAuthPage,
-    }
+    },
+    {
+      path:'/admin/appManage',
+      name:'应用管理',
+      component:AppManagePage,
+    },
+    {
+      path: '/app/chat/:id',
+      name: '应用对话',
+      component: AppChatPage,
+    },
+    {
+      path: '/app/edit/:id',
+      name: '编辑应用',
+      component: AppEditPage,
+    },
   ],
 })
 

@@ -1,4 +1,4 @@
-<template>
+】<template>
   <a-layout class="basic-layout">
     <!-- 顶部导航栏 -->
     <GlobalHeader />
@@ -24,9 +24,9 @@ import GlobalFooter from '@/components/GlobalFooter.vue'
 }
 
 .main-content {
-  max-width: 1200px;
-  padding: 24px;
-  background: white;
-  margin: 16px auto 56px;
+  width: 100%;
+  padding: 0;
+  background: none;
+  margin: 0;
 }
 </style>
