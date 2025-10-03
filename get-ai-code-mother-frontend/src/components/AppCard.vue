@@ -1,6 +1,7 @@
 <template>
   <div class="app-card" :class="{ 'app-card--featured': featured }">
     <div class="app-preview">
+<!--      有封面就用封面，没有就用默认图标 -->
       <img v-if="app.cover" :src="app.cover" :alt="app.appName" />
       <div v-else class="app-placeholder">
         <span>🤖</span>
@@ -12,6 +13,7 @@
         </a-space>
       </div>
     </div>
+
     <div class="app-info">
       <div class="app-info-left">
         <a-avatar :src="app.user?.userAvatar" :size="40">

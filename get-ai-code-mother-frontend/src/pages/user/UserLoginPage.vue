@@ -12,7 +12,6 @@
         ]"
       >
         <a-input
-          style="width: 300px"
           v-model:value="formState.userAccount"
           placeholder="请输入账号"
         />

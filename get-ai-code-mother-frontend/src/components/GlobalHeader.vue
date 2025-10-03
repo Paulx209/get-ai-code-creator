@@ -94,6 +94,11 @@ const originItems = ref([
     'title':'用户管理'
   },
   {
+    key:'/admin/appManage',
+    label:'应用管理',
+    'title':'应用管理'
+  },
+  {
     key: '/about',
     label: '关于',
     title: '关于我们',
@@ -107,7 +112,8 @@ const originItems = ref([
 
 //过滤菜单项
 const filterMenus=(menus = [] as MenuProps['items']) =>{
-  return menus.filter((menu) => {
+  return menus ?.filter((menu) => {
+    console.log(menu)
     // 根据menu 获取 route
     const route =menuToRouteItem(menu)
     if (route === undefined) {
@@ -125,7 +131,7 @@ const  menuToRouteItem = function(menu){
 }
 
 // 展示在菜单的路由数组
-const menuItems = computed<MenuProps['items']>(() => filterMenus(originItems))
+const menuItems = computed<MenuProps['items']>(() => filterMenus(originItems.value))
 
 // 处理菜单点击
 const handleMenuClick: MenuProps['onClick'] = (e) => {

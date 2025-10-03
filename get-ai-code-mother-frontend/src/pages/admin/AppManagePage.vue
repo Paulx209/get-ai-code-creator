@@ -92,7 +92,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
-import { listAppVoByPageByAdmin, deleteAppByAdmin, updateAppByAdmin } from '@/api/appController'
+import { adminGetAppVoListPage, adminDelete, adminUpdate } from '@/api/yingyongxiangguanjiekou.ts'
 import { CODE_GEN_TYPE_OPTIONS, formatCodeGenType } from '@/utils/codeGenTypes'
 import { formatTime } from '@/utils/time'
 import UserInfo from '@/components/UserInfo.vue'
@@ -167,7 +167,7 @@ const searchParams = reactive<API.AppQueryRequest>({
 // 获取数据
 const fetchData = async () => {
   try {
-    const res = await listAppVoByPageByAdmin({
+    const res = await adminGetAppVoListPage({
       ...searchParams,
     })
     if (res.data.data) {
@@ -224,7 +224,7 @@ const toggleFeatured = async (app: API.AppVO) => {
   const newPriority = app.priority === 99 ? 0 : 99
 
   try {
-    const res = await updateAppByAdmin({
+    const res = await adminUpdate({
       id: app.id,
       priority: newPriority,
     })
@@ -247,7 +247,7 @@ const deleteApp = async (id: number | undefined) => {
   if (!id) return
 
   try {
-    const res = await deleteAppByAdmin({ id })
+    const res = await adminDelete({ id })
     if (res.data.code === 0) {
       message.success('删除成功')
       // 刷新数据

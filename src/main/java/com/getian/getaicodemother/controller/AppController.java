@@ -219,9 +219,9 @@ public class AppController {
         long pageSize= appQueryRequest.getPageSize();
         long pageNum =appQueryRequest.getPageNum();
         QueryWrapper appQueryWrapper = appService.getAppQueryWrapper(appQueryRequest);
-        Page<App> resPage=appService.page(new Page<>(pageSize,pageNum),appQueryWrapper);
-        Page<AppVO> ansPage=new Page<>(pageSize,pageNum,resPage.getTotalRow());
+        Page<App> resPage=appService.page(new Page<>(pageNum,pageSize),appQueryWrapper);
         List<AppVO> appVOList = appService.getAppVOList(resPage.getRecords());
+        Page<AppVO> ansPage=new Page<>(pageSize,pageNum,resPage.getTotalRow());
         ansPage.setRecords(appVOList);
         return ResultUtils.success(ansPage);
     }
@@ -243,6 +243,13 @@ public class AppController {
         return ResultUtils.success(appService.getAppVO(app));
     }
 
+    /**
+     * 应用聊天生成代码
+     * @param appId
+     * @param message
+     * @param request
+     * @return
+     */
     @GetMapping(value = "/chat/gen/code",produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     @Operation(summary = "应用聊天生成代码")
     public Flux<ServerSentEvent<String>> chatToGenCode(@RequestParam("appId") Long appId,@RequestParam("message") String message,HttpServletRequest request){
@@ -251,11 +258,12 @@ public class AppController {
         ThrowUtils.throwIf(StrUtil.isBlank(message),ErrorCode.PARAMS_ERROR,"消息不合法");
         //获取当前登录用户
         User loginUser = userService.getCurrentLoginUser(request);
-        Flux<String> codeStream= appService.chatToGenCode(appId, message, loginUser);
+        Flux<String> codeStream = appService.chatToGenCode(appId, message, loginUser);
         return codeStream.map(chunk -> {
             Map<String,String> map=Map.of("v",chunk);
             String jsonStr = JSONUtil.toJsonStr(map);
-            return ServerSentEvent.<String>builder().data(jsonStr).build();
+            ServerSentEvent<String> serverSentEvent = ServerSentEvent.<String>builder().data(jsonStr).build();
+            return serverSentEvent;
             //当前面所有的流数据都发送完后，再发送一个don，只包含单个元素的响应式流。
         }).concatWith(Mono.just(
                 ServerSentEvent.<String>builder()

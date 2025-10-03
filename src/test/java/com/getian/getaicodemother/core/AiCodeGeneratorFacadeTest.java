@@ -45,7 +45,7 @@ class AiCodeGeneratorFacadeTest {
 
     @Test
     void testParseHtmlCode(){
-        String message="请帮我生成一个相亲网站首页，一共不超过50行代码";
+        String message="帮我生成一个宇宙星舰风格的网页，不超过50行代码";
         Flux<String> codeStream = aiCodeGeneratorFacade.generateAndSaveCodeStream(message, CodeGenTypeEnum.MULTI_FILE,appId);
         List<String> result = codeStream.collectList().block();
         //验证结果

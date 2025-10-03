@@ -16,7 +16,7 @@
           <template #icon>
             <CloudUploadOutlined />
           </template>
-          部署按钮
+          部署
         </a-button>
       </div>
     </div>
@@ -28,12 +28,14 @@
         <!-- 消息区域 -->
         <div class="messages-container" ref="messagesContainer">
           <div v-for="(message, index) in messages" :key="index" class="message-item">
+<!--            用户消息-->
             <div v-if="message.type === 'user'" class="user-message">
               <div class="message-content">{{ message.content }}</div>
               <div class="message-avatar">
                 <a-avatar :src="loginUserStore.loginUser.userAvatar" />
               </div>
             </div>
+<!--            ai消息-->
             <div v-else class="ai-message">
               <div class="message-avatar">
                 <a-avatar :src="aiAvatar" />
@@ -146,8 +148,8 @@ import { useLoginUserStore } from '@/stores/loginUser'
 import {
   getAppVoById,
   deployApp as deployAppApi,
-  deleteApp as deleteAppApi,
-} from '@/api/appController'
+  remove as deleteAppApi,
+} from '@/api/yingyongxiangguanjiekou.ts'
 import { CodeGenTypeEnum } from '@/utils/codeGenTypes'
 import request from '@/request'
 
@@ -227,7 +229,7 @@ const fetchAppInfo = async () => {
     if (res.data.code === 0 && res.data.data) {
       appInfo.value = res.data.data
 
-      // 检查是否有view=1参数，如果有则不自动发送初始提示词
+      // 检查是否有view=1参数，如果有则不自动发送初始提示词,(其他地方进入的会携带view=1参数)
       const isViewMode = route.query.view === '1'
 
       // 自动发送初始提示词（除非是查看模式或已经进行过初始对话）
@@ -318,7 +320,7 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
 
     const url = `${baseURL}/app/chat/gen/code?${params}`
 
-    // 创建 EventSource 连接
+    // 创建 EventSource 连接  url: 是服务器端提供事件流的地址。会建立一个持久的http连接
     eventSource = new EventSource(url, {
       withCredentials: true,
     })
@@ -332,7 +334,7 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
       try {
         // 解析JSON包装的数据
         const parsed = JSON.parse(event.data)
-        const content = parsed.d
+        const content = parsed.v
 
         // 拼接内容
         if (content !== undefined && content !== null) {
@@ -347,7 +349,7 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
       }
     }
 
-    // 处理done事件
+    // 后端会不断返回ServerSentEvent，出现done说明处理完毕！处理done事件
     eventSource.addEventListener('done', function () {
       if (streamCompleted) return
 
@@ -394,7 +396,7 @@ const handleError = (error: unknown, aiMessageIndex: number) => {
   isGenerating.value = false
 }
 
-// 更新预览
+// 更新预览  todo
 const updatePreview = () => {
   if (appId.value) {
     const codeGenType = appInfo.value?.codeGenType || CodeGenTypeEnum.HTML

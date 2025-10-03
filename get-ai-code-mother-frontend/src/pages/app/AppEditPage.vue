@@ -121,7 +121,7 @@ import { ref, reactive, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { useLoginUserStore } from '@/stores/loginUser'
-import { getAppVoById, updateApp, updateAppByAdmin } from '@/api/appController'
+import { adminUpdate, getAppVoById, update } from '@/api/yingyongxiangguanjiekou.ts'
 import { formatCodeGenType } from '@/utils/codeGenTypes'
 import { formatTime } from '@/utils/time'
 import UserInfo from '@/components/UserInfo.vue'
@@ -214,7 +214,7 @@ const handleSubmit = async () => {
     let res
     if (isAdmin.value) {
       // 管理员可以修改更多字段
-      res = await updateAppByAdmin({
+      res = await adminUpdate({
         id: appInfo.value.id,
         appName: formData.appName,
         cover: formData.cover,
@@ -222,8 +222,8 @@ const handleSubmit = async () => {
       })
     } else {
       // 普通用户只能修改应用名称
-      res = await updateApp({
-        id: appInfo.value.id,
+      res = await update({
+        appId: appInfo.value.id,
         appName: formData.appName,
       })
     }
