@@ -2,10 +2,15 @@ package com.getian.getaicodemother.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.io.FileUtil;
+import cn.hutool.core.io.IORuntimeException;
+import cn.hutool.core.util.RandomUtil;
+import cn.hutool.core.util.StrUtil;
 import com.getian.getaicodemother.core.AiCodeGeneratorFacade;
 import com.getian.getaicodemother.exception.BusinessException;
 import com.getian.getaicodemother.exception.ErrorCode;
 import com.getian.getaicodemother.exception.ThrowUtils;
+import com.getian.getaicodemother.model.constant.AppConstant;
 import com.getian.getaicodemother.model.constant.UserConstant;
 import com.getian.getaicodemother.model.dto.app.AppAddRequest;
 import com.getian.getaicodemother.model.dto.app.AppQueryRequest;
@@ -25,6 +30,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 
+import java.io.File;
+import java.sql.Struct;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -194,5 +201,54 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
         //5.调用门面类
         Flux<String> codeStream = aiCodeGeneratorFacade.generateAndSaveCodeStream(message, codeGenTypeEnum, appId);
         return codeStream ;
+    }
+
+    /**
+     * 部署应用
+     * @param appId
+     * @param loginUser
+     * @return
+     */
+    @Override
+    public String deployApp(Long appId, User loginUser) {
+        //1.校验参数
+        ThrowUtils.throwIf(appId == null || appId<=0,ErrorCode.PARAMS_ERROR,"应用id不能为空");
+        //2.查询应用信息
+        App app = getById(appId);
+        ThrowUtils.throwIf(app==null,ErrorCode.PARAMS_ERROR,"应用不存在");
+        //3.校验是否是创建者
+        Long createUserId = app.getUserId();
+        ThrowUtils.throwIf(!createUserId.equals(loginUser.getId()),ErrorCode.NO_AUTH_ERROR,"该用户无权限部署");
+        //4.检查当前deployKey是否已经存在
+        //拼接当前的deployKey
+        String deployKey = app.getDeployKey();
+        if(StrUtil.isEmpty(deployKey)){
+            deployKey= RandomUtil.randomString(6);
+        }
+        //5.获取代码生成类型，构建源目录路径
+        String codeGenType = app.getCodeGenType();
+        CodeGenTypeEnum codeGenTypeEnum = CodeGenTypeEnum.getCodeGenTypeEnum(codeGenType);
+        ThrowUtils.throwIf(codeGenTypeEnum == null,ErrorCode.PARAMS_ERROR,"应用类型错误");
+        String file_suffix=codeGenType+"_"+appId;
+        String srcDirPath= AppConstant.CODE_OUTPUT_ROOT_DIR+ File.separator+file_suffix;
+        //6.检查源目录路径是否存在
+        File sourceDir = new File(srcDirPath);
+        ThrowUtils.throwIf(!sourceDir.exists() || !sourceDir.isDirectory(),ErrorCode.SYSTEM_ERROR,"源目录不存在");
+        //7.复制文件到部署目录
+        String deployDir=AppConstant.CODE_DEPLOY_ROOT_DIR+File.separator+deployKey;
+        try {
+            FileUtil.copyContent(sourceDir,new File(deployDir),true);
+        } catch (IORuntimeException e) {
+            throw new RuntimeException(e);
+        }
+        //8.更新应用的deployKey 和 部署时间
+        App updateApp=new App();
+        updateApp.setId(appId);
+        updateApp.setDeployedTime(LocalDateTime.now());
+        updateApp.setDeployKey(deployKey);
+        boolean flag = this.updateById(updateApp);
+        ThrowUtils.throwIf(!flag,ErrorCode.SYSTEM_ERROR,"更新应用部署信息失败");
+        //9.返回可访问的url
+        return AppConstant.CODE_DEPLOY_HOST+"/"+deployKey+"/";
     }
 }

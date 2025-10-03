@@ -13,10 +13,7 @@ import com.getian.getaicodemother.exception.ErrorCode;
 import com.getian.getaicodemother.exception.ThrowUtils;
 import com.getian.getaicodemother.model.constant.AppConstant;
 import com.getian.getaicodemother.model.constant.UserConstant;
-import com.getian.getaicodemother.model.dto.app.AppAddRequest;
-import com.getian.getaicodemother.model.dto.app.AppAdminUpdateRequest;
-import com.getian.getaicodemother.model.dto.app.AppQueryRequest;
-import com.getian.getaicodemother.model.dto.app.AppUpdateRequest;
+import com.getian.getaicodemother.model.dto.app.*;
 import com.getian.getaicodemother.model.entity.User;
 import com.getian.getaicodemother.model.enums.UserRoleEnum;
 import com.getian.getaicodemother.model.vo.app.AppVO;
@@ -266,6 +263,17 @@ public class AppController {
                         .data("")
                         .build()
         ));
+    }
+
+    @PostMapping("/deploy")
+    @Operation(summary = "应用部署")
+    public BaseResponse<String> deployApp(@RequestBody AppDeployRequest deployRequest,HttpServletRequest request){
+        log.info("应用部署:{}",deployRequest);
+        ThrowUtils.throwIf(deployRequest == null || deployRequest.getAppId() == null , ErrorCode.PARAMS_ERROR,"参数为空");
+        Long appId=deployRequest.getAppId();
+        User loginUser = userService.getCurrentLoginUser(request);
+        String deployUrl = appService.deployApp(appId, loginUser);
+        return ResultUtils.success(deployUrl);
     }
 
 }

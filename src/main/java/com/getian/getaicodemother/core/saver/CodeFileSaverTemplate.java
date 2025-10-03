@@ -5,16 +5,13 @@ import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.StrUtil;
 import com.getian.getaicodemother.exception.BusinessException;
 import com.getian.getaicodemother.exception.ErrorCode;
+import com.getian.getaicodemother.model.constant.AppConstant;
 import com.getian.getaicodemother.model.enums.CodeGenTypeEnum;
 
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 
 public abstract class CodeFileSaverTemplate<T> {
-    //文件保存根目录
-    private static final String FILE_SAVE_ROOT_DIR = System.getProperty("user.dir") + File.separator + "tmp" + File.separator + "code_output";
-
-
     public final File save(T result,Long appId){
         //1.校验输入
         validateInput(result);
@@ -35,7 +32,7 @@ public abstract class CodeFileSaverTemplate<T> {
     private  String buildUniqueDirPath(Long appId){
         String bizType=getBizType().getValue();
         String filePathDir= StrUtil.format("{}_{}",bizType,appId);
-        String filePath=FILE_SAVE_ROOT_DIR+File.separator+filePathDir;
+        String filePath= AppConstant.CODE_OUTPUT_ROOT_DIR +File.separator+filePathDir;
         FileUtil.mkdir(filePath);
         return filePath;
     }
