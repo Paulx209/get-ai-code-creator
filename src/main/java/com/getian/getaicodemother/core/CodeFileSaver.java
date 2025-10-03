@@ -10,6 +10,7 @@ import com.getian.getaicodemother.model.enums.CodeGenTypeEnum;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 
+@Deprecated
 public class CodeFileSaver {
     //文件保存根目录
     private static final String FILE_SAVE_ROOT_DIR=System.getProperty("user.dir")+ File.separator+"tmp"+File.separator+"code_output";

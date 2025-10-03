@@ -3,11 +3,13 @@ package com.getian.getaicodemother.service;
 import com.getian.getaicodemother.model.dto.app.AppAddRequest;
 import com.getian.getaicodemother.model.dto.app.AppQueryRequest;
 import com.getian.getaicodemother.model.dto.app.AppUpdateRequest;
+import com.getian.getaicodemother.model.entity.User;
 import com.getian.getaicodemother.model.vo.app.AppVO;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.core.service.IService;
 import com.getian.getaicodemother.model.entity.App;
 import jakarta.servlet.http.HttpServletRequest;
+import reactor.core.publisher.Flux;
 
 import java.util.List;
 
@@ -47,4 +49,13 @@ public interface AppService extends IService<App> {
      * @return
      */
     List<AppVO> getAppVOList(List<App> appList);
+
+    /**
+     * 交流 -> 生成代码
+     * @param appId
+     * @param message
+     * @param loginUser
+     * @return
+     */
+    Flux<String> chatToGenCode(Long appId, String message, User loginUser);
 }

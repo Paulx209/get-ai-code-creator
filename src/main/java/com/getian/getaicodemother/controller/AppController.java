@@ -32,17 +32,13 @@ import lombok.extern.log4j.Log4j2;
 
 import org.springframework.beans.BeanUtils;
 import org.springframework.boot.autoconfigure.graphql.GraphQlProperties;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.*;
 
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.beans.factory.annotation.Autowired;
 import com.getian.getaicodemother.model.entity.App;
 import com.getian.getaicodemother.service.AppService;
-import org.springframework.web.bind.annotation.RestController;
+import reactor.core.publisher.Flux;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -243,6 +239,18 @@ public class AppController {
         ThrowUtils.throwIf(app == null, ErrorCode.NOT_FOUND_ERROR);
         // 获取封装类
         return ResultUtils.success(appService.getAppVO(app));
+    }
+
+    @GetMapping(value = "/chat/gen/code",produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @Operation(summary = "应用聊天生成代码")
+    public Flux<String> chatToGenCode(@RequestParam("appId") Long appId,@RequestParam("message") String message,HttpServletRequest request){
+        log.info("应用聊天生成代码:{},{}",appId,message);
+        ThrowUtils.throwIf(appId == null || appId <0 ,ErrorCode.PARAMS_ERROR,"应用id不合法");
+        ThrowUtils.throwIf(StrUtil.isBlank(message),ErrorCode.PARAMS_ERROR,"消息不合法");
+        //获取当前登录用户
+        User loginUser = userService.getCurrentLoginUser(request);
+        Flux<String> codeStream= appService.chatToGenCode(appId, message, loginUser);
+        return codeStream;
     }
 
 }

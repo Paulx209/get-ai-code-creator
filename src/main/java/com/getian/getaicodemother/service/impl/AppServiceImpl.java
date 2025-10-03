@@ -2,6 +2,7 @@ package com.getian.getaicodemother.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollUtil;
+import com.getian.getaicodemother.core.AiCodeGeneratorFacade;
 import com.getian.getaicodemother.exception.BusinessException;
 import com.getian.getaicodemother.exception.ErrorCode;
 import com.getian.getaicodemother.exception.ThrowUtils;
@@ -22,6 +23,7 @@ import com.getian.getaicodemother.service.AppService;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -39,6 +41,8 @@ import java.util.stream.Collectors;
 public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppService{
     @Resource
     private UserService userService;
+    @Resource
+    private AiCodeGeneratorFacade aiCodeGeneratorFacade;
     /**
      * 新增应用
      * @param addRequest
@@ -162,5 +166,33 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
             appVO.setUser(userVO);
             return appVO;
         }).collect(Collectors.toList());
+    }
+
+    /**
+     * 交流 -> 生成代码
+     * @param appId
+     * @param message
+     * @param loginUser
+     * @return
+     */
+    @Override
+    public Flux<String> chatToGenCode(Long appId, String message, User loginUser) {
+        //1.校验参数
+        ThrowUtils.throwIf(appId == null,ErrorCode.PARAMS_ERROR,"应用id不能为空");
+        ThrowUtils.throwIf(message == null,ErrorCode.PARAMS_ERROR,"消息不能为空");
+        //2.校验app是否存在
+        App app = getById(appId);
+        ThrowUtils.throwIf(app == null || app.getId() < 0,ErrorCode.PARAMS_ERROR,"应用不存在");
+        //3.校验是否是创建者
+        Long userId = loginUser.getId();
+        Long createUserId = app.getUserId();
+        ThrowUtils.throwIf(!createUserId.equals(userId),ErrorCode.NO_AUTH_ERROR,"无权限");
+        //4.获取应用的代码生成类型
+        String codeGenType = app.getCodeGenType();
+        CodeGenTypeEnum codeGenTypeEnum = CodeGenTypeEnum.getCodeGenTypeEnum(codeGenType);
+        ThrowUtils.throwIf(codeGenTypeEnum == null ,ErrorCode.PARAMS_ERROR,"应用类型错误");
+        //5.调用门面类
+        Flux<String> codeStream = aiCodeGeneratorFacade.generateAndSaveCodeStream(message, codeGenTypeEnum, appId);
+        return codeStream ;
     }
 }
