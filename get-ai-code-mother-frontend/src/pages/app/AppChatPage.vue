@@ -229,7 +229,7 @@ const fetchAppInfo = async () => {
     if (res.data.code === 0 && res.data.data) {
       appInfo.value = res.data.data
 
-      // 检查是否有view=1参数，如果有则不自动发送初始提示词,(其他地方进入的会携带view=1参数)
+      // 检查是否有view=1参数，如果有则不自动发送初始提示词(其他地方（非创建应用弹出来的对话框）进入的会携带view=1参数)
       const isViewMode = route.query.view === '1'
 
       // 自动发送初始提示词（除非是查看模式或已经进行过初始对话）
@@ -274,6 +274,7 @@ const sendInitialMessage = async (prompt: string) => {
 
 // 发送消息
 const sendMessage = async () => {
+  // 用户输入为空 || 正在生成中 => 直接返回
   if (!userInput.value.trim() || isGenerating.value) {
     return
   }
@@ -281,7 +282,7 @@ const sendMessage = async () => {
   const message = userInput.value.trim()
   userInput.value = ''
 
-  // 添加用户消息
+  // 标识为用户消息
   messages.value.push({
     type: 'user',
     content: message,
@@ -303,7 +304,7 @@ const sendMessage = async () => {
   await generateCode(message, aiMessageIndex)
 }
 
-// 生成代码 - 使用 EventSource 处理流式响应
+// 生成消息 - 使用 EventSource 处理流式响应
 const generateCode = async (userMessage: string, aiMessageIndex: number) => {
   let eventSource: EventSource | null = null
   let streamCompleted = false

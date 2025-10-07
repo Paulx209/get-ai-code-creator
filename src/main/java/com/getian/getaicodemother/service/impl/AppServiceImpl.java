@@ -16,9 +16,11 @@ import com.getian.getaicodemother.model.dto.app.AppAddRequest;
 import com.getian.getaicodemother.model.dto.app.AppQueryRequest;
 import com.getian.getaicodemother.model.dto.app.AppUpdateRequest;
 import com.getian.getaicodemother.model.entity.User;
+import com.getian.getaicodemother.model.enums.ChatHistoryMessageTypeEnum;
 import com.getian.getaicodemother.model.enums.CodeGenTypeEnum;
 import com.getian.getaicodemother.model.vo.app.AppVO;
 import com.getian.getaicodemother.model.vo.user.UserVO;
+import com.getian.getaicodemother.service.ChatHistoryService;
 import com.getian.getaicodemother.service.UserService;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.spring.service.impl.ServiceImpl;
@@ -50,6 +52,8 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
     private UserService userService;
     @Resource
     private AiCodeGeneratorFacade aiCodeGeneratorFacade;
+    @Resource
+    private ChatHistoryService chatHistoryService;
     /**
      * 新增应用
      * @param addRequest
@@ -198,8 +202,25 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
         String codeGenType = app.getCodeGenType();
         CodeGenTypeEnum codeGenTypeEnum = CodeGenTypeEnum.getCodeGenTypeEnum(codeGenType);
         ThrowUtils.throwIf(codeGenTypeEnum == null ,ErrorCode.PARAMS_ERROR,"应用类型错误");
-        //5.调用门面类
+        //5.保存用户会话消息
+        chatHistoryService.addChatMessage(appId,message, ChatHistoryMessageTypeEnum.USER.getValue(),userId);
+        //6.调用门面类，AI大模型生成消息并且返回内容流
         Flux<String> codeStream = aiCodeGeneratorFacade.generateAndSaveCodeStream(message, codeGenTypeEnum, appId);
+        StringBuilder aiSb=new StringBuilder();
+        codeStream.map(chunk -> {
+            aiSb.append(chunk);
+            return chunk;
+        }).doOnComplete(()->{
+           //7.保存AI回话消息
+            String aiMessage = aiSb.toString();
+            if(StrUtil.isNotEmpty(aiMessage)){
+                chatHistoryService.addChatMessage(appId,aiMessage, ChatHistoryMessageTypeEnum.AI.getValue(),userId);
+            }
+        }).doOnError(error -> {
+            //遇到错误也要保存
+            String errorText="AI大模型生成代码失败，请稍后重试"+error.getMessage();
+            chatHistoryService.addChatMessage(appId,errorText, ChatHistoryMessageTypeEnum.AI.getValue(),userId);
+        });
         return codeStream ;
     }
 

@@ -56,6 +56,7 @@ public class AiCodeGeneratorFacade {
             case HTML ->  {
                 //先生成代码流
                 Flux<String> stringFlux = aiCodeGeneratorService.generatorHtmlCodeStream(userMessage);
+                //yield关键字是用于增强switch表达式的，用于从分支返回值的关键字！
                 yield  processCodeStream(stringFlux,codeGenType,appId);
             }
             case MULTI_FILE -> {
