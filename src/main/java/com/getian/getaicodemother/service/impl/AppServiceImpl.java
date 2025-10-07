@@ -27,16 +27,15 @@ import com.getian.getaicodemother.mapper.AppMapper;
 import com.getian.getaicodemother.service.AppService;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.extern.log4j.Log4j2;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 
 import java.io.File;
-import java.sql.Struct;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
 /**
@@ -45,6 +44,7 @@ import java.util.stream.Collectors;
  * @author sonicge
  */
 @Service
+@Log4j2
 public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppService{
     @Resource
     private UserService userService;
@@ -219,12 +219,13 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
         //3.校验是否是创建者
         Long createUserId = app.getUserId();
         ThrowUtils.throwIf(!createUserId.equals(loginUser.getId()),ErrorCode.NO_AUTH_ERROR,"该用户无权限部署");
-        //4.检查当前deployKey是否已经存在
-        //拼接当前的deployKey
+        //4.检查当前deployKey是否已经存在  如果存在 -> 返回可访问的url
         String deployKey = app.getDeployKey();
-        if(StrUtil.isEmpty(deployKey)){
-            deployKey= RandomUtil.randomString(6);
+        if(StrUtil.isNotEmpty(deployKey) && deployKey.length() ==6){
+            log.info("应用已经部署过，deployKey:{}",deployKey);
+            return AppConstant.CODE_DEPLOY_HOST + File.separator + deployKey + File.separator;
         }
+        deployKey= RandomUtil.randomString(6);
         //5.获取代码生成类型，构建源目录路径
         String codeGenType = app.getCodeGenType();
         CodeGenTypeEnum codeGenTypeEnum = CodeGenTypeEnum.getCodeGenTypeEnum(codeGenType);
