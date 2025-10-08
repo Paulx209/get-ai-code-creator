@@ -8,7 +8,7 @@ import com.zaxxer.hikari.HikariDataSource;
 
 import java.util.Map;
 
-public class MyCoedGenerator {
+public class MyCodeGenerator {
     private static final String[] TABLES_NAME = {"chat_history"};
 
     public static void main(String[] args) {

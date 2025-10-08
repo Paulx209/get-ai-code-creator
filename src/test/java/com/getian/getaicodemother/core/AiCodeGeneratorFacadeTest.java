@@ -51,4 +51,16 @@ class AiCodeGeneratorFacadeTest {
         //验证结果
         Assertions.assertNotNull(result);
     }
+
+    @Test
+    void testVueProjectGenerateCode(){
+        String message="帮我生成一个vue项目，内容是一个用户登录页面，代码总量不超过100行";
+        Flux<String> stringFlux = aiCodeGeneratorFacade.generateAndSaveCodeStream(message, CodeGenTypeEnum.VUE_PROJECT, appId);
+        List<String> result = stringFlux.collectList().block();
+        //验证结果
+        Assertions.assertNotNull(result);
+        String completeContent=String.join("",result);
+        System.out.println(completeContent);
+        Assertions.assertNotNull(completeContent);
+    }
 }
