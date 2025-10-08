@@ -8,6 +8,7 @@ import reactor.core.publisher.Flux;
 public interface AiCodeGeneratorService {
     /**
      * 生成原生单页面文件
+     *
      * @param userMessage 用户信息
      * @return
      */
@@ -15,10 +16,10 @@ public interface AiCodeGeneratorService {
     HtmlCodeResult generatorHtmlCode(String userMessage);
 
 
-
     /**
      * 生成原生多页面文件
-     * @param userMessage  用户信息
+     *
+     * @param userMessage 用户信息
      * @return
      */
     @SystemMessage(fromResource = "prompt/codegen-multi-file-system-prompt.txt")
@@ -27,6 +28,7 @@ public interface AiCodeGeneratorService {
 
     /**
      * 流式生成原生单页面文件
+     *
      * @param userMessage 用户信息
      * @return
      */
@@ -35,7 +37,8 @@ public interface AiCodeGeneratorService {
 
     /**
      * 流式生成原生多页面文件
-     * @param userMessage  用户信息
+     *
+     * @param userMessage 用户信息
      * @return
      */
     @SystemMessage(fromResource = "prompt/codegen-multi-file-system-prompt.txt")

@@ -1,94 +1,68 @@
 package com.getian.getaicodemother.controller;
 
+import com.getian.getaicodemother.annotation.AuthCheck;
+import com.getian.getaicodemother.common.BaseResponse;
+import com.getian.getaicodemother.common.ResultUtils;
+import com.getian.getaicodemother.exception.ErrorCode;
+import com.getian.getaicodemother.exception.ThrowUtils;
+import com.getian.getaicodemother.model.constant.UserConstant;
+import com.getian.getaicodemother.model.dto.chathistory.ChatHistoryQueryRequest;
+import com.getian.getaicodemother.model.entity.User;
+import com.getian.getaicodemother.service.UserService;
 import com.mybatisflex.core.paginate.Page;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
+import com.mybatisflex.core.query.QueryWrapper;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.annotation.Resource;
+import jakarta.servlet.http.HttpServletRequest;
+import lombok.extern.log4j.Log4j2;
+import org.apache.coyote.Response;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import com.getian.getaicodemother.model.entity.ChatHistory;
 import com.getian.getaicodemother.service.ChatHistoryService;
-import org.springframework.web.bind.annotation.RestController;
+
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * 对话历史 控制层。
- *
  * @author sonicge
  */
 @RestController
 @RequestMapping("/chatHistory")
+@Log4j2
+@Tag(name = "对话历史")
 public class ChatHistoryController {
 
-    @Autowired
+    @Resource
     private ChatHistoryService chatHistoryService;
+    @Resource
+    private UserService userService;
 
-    /**
-     * 保存对话历史。
-     *
-     * @param chatHistory 对话历史
-     * @return {@code true} 保存成功，{@code false} 保存失败
-     */
-    @PostMapping("save")
-    public boolean save(@RequestBody ChatHistory chatHistory) {
-        return chatHistoryService.save(chatHistory);
+    @GetMapping("/app/{appId}")
+    @Operation(summary = "分页查询应用对话历史")
+    public BaseResponse<Page<ChatHistory>> listAppChatHistory(@PathVariable Long appId,
+                                                              @RequestParam(defaultValue = "10") int pageSize,
+                                                              @RequestParam(required = false)LocalDateTime lastCreateTime,
+                                                              HttpServletRequest request){
+        log.info("分页查询应用对话历史,appId:{},lastCreateTime:{}",appId,lastCreateTime);
+        ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "参数非法");
+        User loginUser = userService.getCurrentLoginUser(request);
+        Page<ChatHistory> result = chatHistoryService.listAppChatHistoryPage(appId, pageSize, lastCreateTime, loginUser);
+        return ResultUtils.success(result);
     }
 
-    /**
-     * 根据主键删除对话历史。
-     *
-     * @param id 主键
-     * @return {@code true} 删除成功，{@code false} 删除失败
-     */
-    @DeleteMapping("remove/{id}")
-    public boolean remove(@PathVariable Long id) {
-        return chatHistoryService.removeById(id);
+    @PostMapping("/admin/list/page/vo")
+    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+    @Operation(summary = "管理员分页查询应用对话历史")
+    public BaseResponse<Page<ChatHistory>> listAllChatHistoryPage(@RequestBody ChatHistoryQueryRequest chatHistoryQueryRequest){
+        log.info("管理员分页查询应用对话历史,chatHistoryQueryRequest:{}",chatHistoryQueryRequest);
+        ThrowUtils.throwIf(chatHistoryQueryRequest == null, ErrorCode.PARAMS_ERROR, "参数非法");
+        int pageNum = chatHistoryQueryRequest.getPageNum();
+        int pageSize = chatHistoryQueryRequest.getPageSize();
+        //查询数据
+        QueryWrapper queryWrapper = chatHistoryService.getChatHistoryQueryWrapper(chatHistoryQueryRequest);
+        Page<ChatHistory> page = chatHistoryService.page(new Page<>(pageNum, pageSize), queryWrapper);
+        return ResultUtils.success(page);
     }
-
-    /**
-     * 根据主键更新对话历史。
-     *
-     * @param chatHistory 对话历史
-     * @return {@code true} 更新成功，{@code false} 更新失败
-     */
-    @PutMapping("update")
-    public boolean update(@RequestBody ChatHistory chatHistory) {
-        return chatHistoryService.updateById(chatHistory);
-    }
-
-    /**
-     * 查询所有对话历史。
-     *
-     * @return 所有数据
-     */
-    @GetMapping("list")
-    public List<ChatHistory> list() {
-        return chatHistoryService.list();
-    }
-
-    /**
-     * 根据主键获取对话历史。
-     *
-     * @param id 对话历史主键
-     * @return 对话历史详情
-     */
-    @GetMapping("getInfo/{id}")
-    public ChatHistory getInfo(@PathVariable Long id) {
-        return chatHistoryService.getById(id);
-    }
-
-    /**
-     * 分页查询对话历史。
-     *
-     * @param page 分页对象
-     * @return 分页对象
-     */
-    @GetMapping("page")
-    public Page<ChatHistory> page(Page<ChatHistory> page) {
-        return chatHistoryService.page(page);
-    }
-
 }

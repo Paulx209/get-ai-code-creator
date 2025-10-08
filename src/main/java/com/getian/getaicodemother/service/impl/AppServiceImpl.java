@@ -31,9 +31,11 @@ import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Flux;
 
 import java.io.File;
+import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -207,7 +209,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
         //6.调用门面类，AI大模型生成消息并且返回内容流
         Flux<String> codeStream = aiCodeGeneratorFacade.generateAndSaveCodeStream(message, codeGenTypeEnum, appId);
         StringBuilder aiSb=new StringBuilder();
-        codeStream.map(chunk -> {
+        return codeStream.map(chunk -> {
             aiSb.append(chunk);
             return chunk;
         }).doOnComplete(()->{
@@ -221,7 +223,6 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
             String errorText="AI大模型生成代码失败，请稍后重试"+error.getMessage();
             chatHistoryService.addChatMessage(appId,errorText, ChatHistoryMessageTypeEnum.AI.getValue(),userId);
         });
-        return codeStream ;
     }
 
     /**
@@ -272,5 +273,31 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
         ThrowUtils.throwIf(!flag,ErrorCode.SYSTEM_ERROR,"更新应用部署信息失败");
         //9.返回可访问的url
         return AppConstant.CODE_DEPLOY_HOST+"/"+deployKey+"/";
+    }
+
+    /**
+     * 重写 根据Id删除应用
+     *
+     * @param id
+     * @return
+     */
+    @Override
+    @Transactional
+    public boolean removeById(Serializable id) {
+        if (id == null) {
+            return false;
+        }
+        //转换为String类型
+        Long appId = Long.valueOf(id.toString());
+        if (appId <= 0) {
+            return false;
+        }
+        //先删除关联的对话应用
+        try {
+            chatHistoryService.deleteByAppId(appId);
+        } catch (Exception e) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "删除应用失败，删除应用对话失败");
+        }
+        return super.removeById(id);
     }
 }

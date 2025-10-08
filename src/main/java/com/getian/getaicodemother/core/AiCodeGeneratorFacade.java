@@ -1,6 +1,7 @@
 package com.getian.getaicodemother.core;
 
 import com.getian.getaicodemother.ai.AiCodeGeneratorService;
+import com.getian.getaicodemother.ai.AiCodeGeneratorServiceFactory;
 import com.getian.getaicodemother.ai.model.HtmlCodeResult;
 import com.getian.getaicodemother.ai.model.MultiFileCodeResult;
 import com.getian.getaicodemother.core.parser.CodeParserExecutor;
@@ -20,12 +21,13 @@ import java.io.File;
 @Slf4j
 public class AiCodeGeneratorFacade {
     @Resource
-    private AiCodeGeneratorService aiCodeGeneratorService;
+    private AiCodeGeneratorServiceFactory aiCodeGeneratorServiceFactory;
 
     public File generateAndSaveCode(String userMessage, CodeGenTypeEnum codeGenType,Long appId) {
         if (codeGenType == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "生成类型为空");
         }
+        AiCodeGeneratorService aiCodeGeneratorService=aiCodeGeneratorServiceFactory.getAiCodeGeneratorService(appId);
         return switch (codeGenType) {
             case HTML -> {
                 HtmlCodeResult htmlCodeResult = aiCodeGeneratorService.generatorHtmlCode(userMessage);
@@ -52,6 +54,7 @@ public class AiCodeGeneratorFacade {
         if(codeGenType == null){
             throw new BusinessException(ErrorCode.PARAMS_ERROR,"生成类型为空");
         }
+        AiCodeGeneratorService aiCodeGeneratorService=aiCodeGeneratorServiceFactory.getAiCodeGeneratorService(appId);
         return switch (codeGenType){
             case HTML ->  {
                 //先生成代码流
