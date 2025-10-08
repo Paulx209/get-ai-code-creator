@@ -10,6 +10,17 @@ spring:
     active: local
   lifecycle:
     timeout-per-shutdown-phase: 60s
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      ttl: 3600
+      password:
+  #session配置
+  session:
+    store-type: redis
+    timeout: 259200
+
 server:
   port: 8123
   servlet:

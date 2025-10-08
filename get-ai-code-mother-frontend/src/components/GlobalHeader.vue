@@ -99,6 +99,11 @@ const originItems = ref([
     'title':'应用管理'
   },
   {
+    key:'/admin/chatManage',
+    label:'对话管理',
+    'title':'对话管理'
+  },
+  {
     key: '/about',
     label: '关于',
     title: '关于我们',

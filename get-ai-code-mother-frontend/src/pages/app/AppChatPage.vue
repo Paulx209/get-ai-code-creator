@@ -16,7 +16,7 @@
           <template #icon>
             <CloudUploadOutlined />
           </template>
-          部署
+          部署按钮
         </a-button>
       </div>
     </div>
@@ -27,15 +27,19 @@
       <div class="chat-section">
         <!-- 消息区域 -->
         <div class="messages-container" ref="messagesContainer">
+          <!-- 加载更多按钮 -->
+          <div v-if="hasMoreHistory" class="load-more-container">
+            <a-button type="link" @click="loadMoreHistory" :loading="loadingHistory" size="small">
+              加载更多历史消息
+            </a-button>
+          </div>
           <div v-for="(message, index) in messages" :key="index" class="message-item">
-<!--            用户消息-->
             <div v-if="message.type === 'user'" class="user-message">
               <div class="message-content">{{ message.content }}</div>
               <div class="message-avatar">
                 <a-avatar :src="loginUserStore.loginUser.userAvatar" />
               </div>
             </div>
-<!--            ai消息-->
             <div v-else class="ai-message">
               <div class="message-avatar">
                 <a-avatar :src="aiAvatar" />
@@ -88,7 +92,6 @@
           </div>
         </div>
       </div>
-
       <!-- 右侧网页展示区域 -->
       <div class="preview-section">
         <div class="preview-header">
@@ -150,6 +153,8 @@ import {
   deployApp as deployAppApi,
   remove as deleteAppApi,
 } from '@/api/yingyongxiangguanjiekou.ts'
+
+import { listAppChatHistory } from '@/api/duihualishi'
 import { CodeGenTypeEnum } from '@/utils/codeGenTypes'
 import request from '@/request'
 
@@ -179,13 +184,19 @@ interface Message {
   type: 'user' | 'ai'
   content: string
   loading?: boolean
+  createTime?: string
 }
 
 const messages = ref<Message[]>([])
 const userInput = ref('')
 const isGenerating = ref(false)
 const messagesContainer = ref<HTMLElement>()
-const hasInitialConversation = ref(false) // 标记是否已经进行过初始对话
+
+// 对话历史相关
+const loadingHistory = ref(false)
+const hasMoreHistory = ref(false)
+const lastCreateTime = ref<string>()
+const historyLoaded = ref(false)
 
 // 预览相关
 const previewUrl = ref('')
@@ -213,6 +224,60 @@ const showAppDetail = () => {
   appDetailVisible.value = true
 }
 
+// 加载对话历史
+const loadChatHistory = async (isLoadMore = false) => {
+  if (!appId.value || loadingHistory.value) return
+  loadingHistory.value = true
+  try {
+    const params: API.listAppChatHistoryParams = {
+      appId: appId.value,
+      pageSize: 10,
+    }
+    // 如果是加载更多，传递最后一条消息的创建时间作为游标
+    if (isLoadMore && lastCreateTime.value) {
+      params.lastCreateTime = lastCreateTime.value
+    }
+    const res = await listAppChatHistory(params)
+    if (res.data.code === 0 && res.data.data) {
+      const chatHistories = res.data.data.records || []
+      if (chatHistories.length > 0) {
+        // 将对话历史转换为消息格式，并按时间正序排列（老消息在前）
+        const historyMessages: Message[] = chatHistories
+          .map((chat) => ({
+            type: (chat.messageType === 'user' ? 'user' : 'ai') as 'user' | 'ai',
+            content: chat.message || '',
+            createTime: chat.createTime,
+          }))
+          .reverse() // 反转数组，让老消息在前
+        if (isLoadMore) {
+          // 加载更多时，将历史消息添加到开头
+          messages.value.unshift(...historyMessages)
+        } else {
+          // 初始加载，直接设置消息列表
+          messages.value = historyMessages
+        }
+        // 更新游标
+        lastCreateTime.value = chatHistories[chatHistories.length - 1]?.createTime
+        // 检查是否还有更多历史
+        hasMoreHistory.value = chatHistories.length === 10
+      } else {
+        hasMoreHistory.value = false
+      }
+      historyLoaded.value = true
+    }
+  } catch (error) {
+    console.error('加载对话历史失败：', error)
+    message.error('加载对话历史失败')
+  } finally {
+    loadingHistory.value = false
+  }
+}
+
+// 加载更多历史消息
+const loadMoreHistory = async () => {
+  await loadChatHistory(true)
+}
+
 // 获取应用信息
 const fetchAppInfo = async () => {
   const id = route.params.id as string
@@ -229,12 +294,20 @@ const fetchAppInfo = async () => {
     if (res.data.code === 0 && res.data.data) {
       appInfo.value = res.data.data
 
-      // 检查是否有view=1参数，如果有则不自动发送初始提示词(其他地方（非创建应用弹出来的对话框）进入的会携带view=1参数)
-      const isViewMode = route.query.view === '1'
-
-      // 自动发送初始提示词（除非是查看模式或已经进行过初始对话）
-      if (appInfo.value.initPrompt && !isViewMode && !hasInitialConversation.value) {
-        hasInitialConversation.value = true
+      // 先加载对话历史
+      await loadChatHistory()
+      // 如果有至少2条对话记录，展示对应的网站
+      if (messages.value.length >= 2) {
+        updatePreview()
+      }
+      // 检查是否需要自动发送初始提示词
+      // 只有在是自己的应用且没有对话历史时才自动发送
+      if (
+        appInfo.value.initPrompt &&
+        isOwner.value &&
+        messages.value.length === 0 &&
+        historyLoaded.value
+      ) {
         await sendInitialMessage(appInfo.value.initPrompt)
       }
     } else {
@@ -274,7 +347,6 @@ const sendInitialMessage = async (prompt: string) => {
 
 // 发送消息
 const sendMessage = async () => {
-  // 用户输入为空 || 正在生成中 => 直接返回
   if (!userInput.value.trim() || isGenerating.value) {
     return
   }
@@ -282,7 +354,7 @@ const sendMessage = async () => {
   const message = userInput.value.trim()
   userInput.value = ''
 
-  // 标识为用户消息
+  // 添加用户消息
   messages.value.push({
     type: 'user',
     content: message,
@@ -304,7 +376,7 @@ const sendMessage = async () => {
   await generateCode(message, aiMessageIndex)
 }
 
-// 生成消息 - 使用 EventSource 处理流式响应
+// 生成代码 - 使用 EventSource 处理流式响应
 const generateCode = async (userMessage: string, aiMessageIndex: number) => {
   let eventSource: EventSource | null = null
   let streamCompleted = false
@@ -321,7 +393,7 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
 
     const url = `${baseURL}/app/chat/gen/code?${params}`
 
-    // 创建 EventSource 连接  url: 是服务器端提供事件流的地址。会建立一个持久的http连接
+    // 创建 EventSource 连接
     eventSource = new EventSource(url, {
       withCredentials: true,
     })
@@ -350,7 +422,7 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
       }
     }
 
-    // 后端会不断返回ServerSentEvent，出现done说明处理完毕！处理done事件
+    // 处理done事件
     eventSource.addEventListener('done', function () {
       if (streamCompleted) return
 
@@ -397,7 +469,7 @@ const handleError = (error: unknown, aiMessageIndex: number) => {
   isGenerating.value = false
 }
 
-// 更新预览  todo
+// 更新预览
 const updatePreview = () => {
   if (appId.value) {
     const codeGenType = appInfo.value?.codeGenType || CodeGenTypeEnum.HTML
@@ -606,6 +678,13 @@ onUnmounted(() => {
   align-items: center;
   gap: 8px;
   color: #666;
+}
+
+/* 加载更多按钮 */
+.load-more-container {
+  text-align: center;
+  padding: 8px 0;
+  margin-bottom: 16px;
 }
 
 /* 输入区域 */
