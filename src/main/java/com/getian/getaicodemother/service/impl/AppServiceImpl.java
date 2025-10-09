@@ -7,6 +7,7 @@ import cn.hutool.core.io.IORuntimeException;
 import cn.hutool.core.util.RandomUtil;
 import cn.hutool.core.util.StrUtil;
 import com.getian.getaicodemother.core.AiCodeGeneratorFacade;
+import com.getian.getaicodemother.core.handler.StreamHandlerExecutor;
 import com.getian.getaicodemother.exception.BusinessException;
 import com.getian.getaicodemother.exception.ErrorCode;
 import com.getian.getaicodemother.exception.ThrowUtils;
@@ -56,6 +57,8 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
     private AiCodeGeneratorFacade aiCodeGeneratorFacade;
     @Resource
     private ChatHistoryService chatHistoryService;
+    @Resource
+    private StreamHandlerExecutor streamHandlerExecutor;
     /**
      * 新增应用
      * @param addRequest
@@ -208,21 +211,23 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
         chatHistoryService.addChatMessage(appId,message, ChatHistoryMessageTypeEnum.USER.getValue(),userId);
         //6.调用门面类，AI大模型生成消息并且返回内容流
         Flux<String> codeStream = aiCodeGeneratorFacade.generateAndSaveCodeStream(message, codeGenTypeEnum, appId);
-        StringBuilder aiSb=new StringBuilder();
-        return codeStream.map(chunk -> {
-            aiSb.append(chunk);
-            return chunk;
-        }).doOnComplete(()->{
-           //7.保存AI回话消息
-            String aiMessage = aiSb.toString();
-            if(StrUtil.isNotEmpty(aiMessage)){
-                chatHistoryService.addChatMessage(appId,aiMessage, ChatHistoryMessageTypeEnum.AI.getValue(),userId);
-            }
-        }).doOnError(error -> {
-            //遇到错误也要保存
-            String errorText="AI大模型生成代码失败，请稍后重试"+error.getMessage();
-            chatHistoryService.addChatMessage(appId,errorText, ChatHistoryMessageTypeEnum.AI.getValue(),userId);
-        });
+        //7.调用handlerExecutor类，根据不同类型的代码生成类型，执行不同的处理逻辑！
+        return streamHandlerExecutor.doExecute(codeStream,appId,loginUser,chatHistoryService,codeGenTypeEnum);
+//        StringBuilder aiSb=new StringBuilder();
+//        return codeStream.map(chunk -> {
+//            aiSb.append(chunk);
+//            return chunk;
+//        }).doOnComplete(()->{
+//           //7.保存AI回话消息
+//            String aiMessage = aiSb.toString();
+//            if(StrUtil.isNotEmpty(aiMessage)){
+//                chatHistoryService.addChatMessage(appId,aiMessage, ChatHistoryMessageTypeEnum.AI.getValue(),userId);
+//            }
+//        }).doOnError(error -> {
+//            //遇到错误也要保存
+//            String errorText="AI大模型生成代码失败，请稍后重试"+error.getMessage();
+//            chatHistoryService.addChatMessage(appId,errorText, ChatHistoryMessageTypeEnum.AI.getValue(),userId);
+//        });
     }
 
     /**

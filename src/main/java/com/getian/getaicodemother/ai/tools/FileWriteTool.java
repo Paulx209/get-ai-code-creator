@@ -30,7 +30,7 @@ public class FileWriteTool {
                 String projectDirName = "vue_project_" + appId;
                 //拼接成绝对路径
                 Path projectRoot = Paths.get(AppConstant.CODE_OUTPUT_ROOT_DIR, projectDirName);
-                //绝对路径+相对路径
+                //绝对路径+相对路径  每次保存一个文件就拼接路径，然后写入到路径里面
                 path = projectRoot.resolve(relativeFilePath);
             }
             // 创建父目录（如果不存在）
