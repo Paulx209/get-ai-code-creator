@@ -12,11 +12,17 @@
           </template>
           应用详情
         </a-button>
+        <a-button type="primary" ghost @click="downloadApp" :loading="isLoading">
+          <template #icon>
+            <DownloadOutlined />
+          </template>
+          下载代码
+        </a-button>
         <a-button type="primary" @click="deployApp" :loading="deploying">
           <template #icon>
             <CloudUploadOutlined />
           </template>
-          部署按钮
+          部署
         </a-button>
       </div>
     </div>
@@ -169,11 +175,54 @@ import {
   SendOutlined,
   ExportOutlined,
   InfoCircleOutlined,
+  DownloadOutlined,
 } from '@ant-design/icons-vue'
 
 const route = useRoute()
 const router = useRouter()
 const loginUserStore = useLoginUserStore()
+
+//下载状态
+const isLoading = ref(false)
+//下载代码
+const downloadApp = async () => {
+  //判断appId是否存在
+  if (!appId.value) {
+    message.error('应用ID不存在')
+    return
+  }
+  //修改下载按钮状态
+  isLoading.value = true
+  try {
+    const API_BASE_URL = request.defaults.baseURL //axios的请求默认路径
+    const url = `${API_BASE_URL}/app/download/${appId.value}` //拼接请求路径
+    const response = await fetch(url, {
+      method: 'GET',
+      credentials: 'include',
+    })
+    if (!response.ok) {
+      throw new Error(`下载失败:${response.status}`)
+    }
+    //获取文件名 响应头中Content-Disposition字段 对应的值中包括filename字段
+    const contentDisposition = response.headers.get('Content-Disposition')
+    const fileName = contentDisposition?.match(/filename="(.+)"/)?.[1] || `app-${appId.value}.zip`
+    //下载文件
+    const blob = await response.blob()  //将响应体返回的内容解析为blob对象
+    const downloadUrl = URL.createObjectURL(blob) //为blob对象内容创建一个临时的URL地址。
+    const link = document.createElement('a') //创建一个超链接标签
+    link.href = downloadUrl //标签的href属性赋值为downloadUrl
+    link.download = fileName
+    link.click()
+    //清理
+    URL.revokeObjectURL(downloadUrl)
+    message.success('代码下载成功')
+  } catch (error) {
+    console.error('下载失败', error)
+    message.error('下载失败,请重试')
+  } finally {
+    isLoading.value = false
+  }
+}
 
 // 应用信息
 const appInfo = ref<API.AppVO>()
