@@ -5,21 +5,27 @@ import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
 import com.getian.getaicodemother.ai.model.message.*;
+import com.getian.getaicodemother.core.builder.VueProjectBuilder;
 import com.getian.getaicodemother.exception.ErrorCode;
 import com.getian.getaicodemother.exception.ThrowUtils;
+import com.getian.getaicodemother.model.constant.AppConstant;
 import com.getian.getaicodemother.model.entity.User;
 import com.getian.getaicodemother.model.enums.ChatHistoryMessageTypeEnum;
 import com.getian.getaicodemother.service.ChatHistoryService;
+import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 
+import java.io.File;
 import java.util.HashSet;
 import java.util.Set;
 
 @Component
 @Slf4j
 public class JsonMessageStreamHandler {
+    @Resource
+    private VueProjectBuilder vueProjectBuilder;
     public Flux<String> handleJsonMessage(Flux<String> originFlux, ChatHistoryService chatHistoryService, Long appId, User loginUser){
         StringBuilder chatHistoryBuilder=new StringBuilder();
         Set<String> seenTools=new HashSet<>();
@@ -32,13 +38,14 @@ public class JsonMessageStreamHandler {
                     //流式响应完成之后，需要将信息添加到数据库中
                     String aiResponse=chatHistoryBuilder.toString();
                     chatHistoryService.addChatMessage(appId,aiResponse, ChatHistoryMessageTypeEnum.AI.getValue(),loginUser.getId());
+                    String vueProjectPath= AppConstant.CODE_OUTPUT_ROOT_DIR+ File.separator+"vue_project_"+appId;
+                    vueProjectBuilder.buildVueProjectAsync(vueProjectPath);
                 }).doOnError(error -> {
                     //如果AI回复失败，也要记录错误消息
                     String errorMessage = "AI回复失败: " + error.getMessage();
                     chatHistoryService.addChatMessage(appId, errorMessage, ChatHistoryMessageTypeEnum.AI.getValue(), loginUser.getId());
                 });
     }
-
     /**
      * 解析并收集stream数据
      * @param chunk

@@ -7,6 +7,7 @@ import cn.hutool.core.io.IORuntimeException;
 import cn.hutool.core.util.RandomUtil;
 import cn.hutool.core.util.StrUtil;
 import com.getian.getaicodemother.core.AiCodeGeneratorFacade;
+import com.getian.getaicodemother.core.builder.VueProjectBuilder;
 import com.getian.getaicodemother.core.handler.StreamHandlerExecutor;
 import com.getian.getaicodemother.exception.BusinessException;
 import com.getian.getaicodemother.exception.ErrorCode;
@@ -31,6 +32,7 @@ import com.getian.getaicodemother.service.AppService;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.log4j.Log4j2;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Flux;
@@ -59,6 +61,9 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
     private ChatHistoryService chatHistoryService;
     @Resource
     private StreamHandlerExecutor streamHandlerExecutor;
+    @Resource
+    private VueProjectBuilder vueProjectBuilder;
+
     /**
      * 新增应用
      * @param addRequest
@@ -262,6 +267,20 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
         //6.检查源目录路径是否存在
         File sourceDir = new File(srcDirPath);
         ThrowUtils.throwIf(!sourceDir.exists() || !sourceDir.isDirectory(),ErrorCode.SYSTEM_ERROR,"源目录不存在");
+        //7.判断是否是vue项目
+        if(codeGenTypeEnum == CodeGenTypeEnum.VUE_PROJECT){
+            //Vue项目需要构建
+            boolean finished = vueProjectBuilder.buildVueProject(srcDirPath);
+            ThrowUtils.throwIf(!finished,ErrorCode.SYSTEM_ERROR,"构建Vue项目失败");
+            //检查dist目录是否存在
+            File distDir=new File(srcDirPath,"dist");
+            if(!distDir.exists()){
+                throw new BusinessException(ErrorCode.SYSTEM_ERROR,"vue构建完成，但是dist目录生成失败");
+            }
+            sourceDir=distDir;
+            log.info("Vue项目构建完成，dist目录路径：{}",distDir.getAbsolutePath());
+        }
+
         //7.复制文件到部署目录
         String deployDir=AppConstant.CODE_DEPLOY_ROOT_DIR+File.separator+deployKey;
         try {
