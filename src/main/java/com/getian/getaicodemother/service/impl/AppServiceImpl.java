@@ -23,6 +23,7 @@ import com.getian.getaicodemother.model.enums.CodeGenTypeEnum;
 import com.getian.getaicodemother.model.vo.app.AppVO;
 import com.getian.getaicodemother.model.vo.user.UserVO;
 import com.getian.getaicodemother.service.ChatHistoryService;
+import com.getian.getaicodemother.service.ScreenshotService;
 import com.getian.getaicodemother.service.UserService;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.spring.service.impl.ServiceImpl;
@@ -63,6 +64,8 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
     private StreamHandlerExecutor streamHandlerExecutor;
     @Resource
     private VueProjectBuilder vueProjectBuilder;
+    @Resource
+    private ScreenshotService screenshotService;
 
     /**
      * 新增应用
@@ -78,7 +81,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
         app.setInitPrompt(addRequest.getPrompt());
         app.setUserId(loginUser.getId());
         app.setAppName(app.getInitPrompt().substring(0,Math.min(app.getInitPrompt().length(),10)));
-        app.setCodeGenType(CodeGenTypeEnum.MULTI_FILE.getValue());
+        app.setCodeGenType(CodeGenTypeEnum.VUE_PROJECT.getValue());
 
         boolean saveApp = save(app);
         ThrowUtils.throwIf(!saveApp, ErrorCode.SYSTEM_ERROR, "新增应用失败");
@@ -253,6 +256,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
         ThrowUtils.throwIf(!createUserId.equals(loginUser.getId()),ErrorCode.NO_AUTH_ERROR,"该用户无权限部署");
         //4.检查当前deployKey是否已经存在  如果存在 -> 返回可访问的url
         String deployKey = app.getDeployKey();
+        log.info("应用部署deployKey:{}",deployKey);
         if(StrUtil.isNotEmpty(deployKey) && deployKey.length() ==6){
             log.info("应用已经部署过，deployKey:{}",deployKey);
             return AppConstant.CODE_DEPLOY_HOST + File.separator + deployKey + File.separator;
@@ -296,7 +300,20 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
         boolean flag = this.updateById(updateApp);
         ThrowUtils.throwIf(!flag,ErrorCode.SYSTEM_ERROR,"更新应用部署信息失败");
         //10.返回可访问的url
-        return AppConstant.CODE_DEPLOY_HOST+"/"+deployKey+"/";
+        String appDeployUrl=AppConstant.CODE_DEPLOY_HOST+File.separator+deployKey+File.separator;
+        generateAndUploadScreenshotAsync(appId,appDeployUrl);
+        return appDeployUrl;
+    }
+    public void generateAndUploadScreenshotAsync(Long appId,String appDeployUrl){
+        Thread.startVirtualThread(()->{
+            String screenshotUrl = screenshotService.generateAndUploadScreenshot(appDeployUrl);
+            //更新应用封面片段
+            App updateApp=new App();
+            updateApp.setId(appId);
+            updateApp.setCover(screenshotUrl);
+            boolean save = this.updateById(updateApp);
+            ThrowUtils.throwIf(!save,ErrorCode.SYSTEM_ERROR,"更新应用封面片段失败");
+        });
     }
 
     /**

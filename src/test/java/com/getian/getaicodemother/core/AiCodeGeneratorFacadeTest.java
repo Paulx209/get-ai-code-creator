@@ -63,4 +63,10 @@ class AiCodeGeneratorFacadeTest {
         System.out.println(completeContent);
         Assertions.assertNotNull(completeContent);
     }
+
+    @Test
+    void test1(){
+        String property = System.getProperty("user.dir");
+        System.out.println(property);
+    }
 }

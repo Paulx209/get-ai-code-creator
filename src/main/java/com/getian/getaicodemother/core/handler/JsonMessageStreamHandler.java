@@ -73,7 +73,7 @@ public class JsonMessageStreamHandler {
                 //如果工具ID不为空，且没有见过这个工具，就添加到seenTools中
                 if(toolId !=null  && !seenTools.contains(toolId)){
                     seenTools.add(toolId);
-                    return "/n/n[选择工具] 写入文件\n\n";
+                    return "\n\n[选择工具] 写入文件\n\n";
                 }else{
                     //不是第一次调用该工具了，直接返回空字符串
                     return "";
