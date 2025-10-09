@@ -281,21 +281,21 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
             log.info("Vue项目构建完成，dist目录路径：{}",distDir.getAbsolutePath());
         }
 
-        //7.复制文件到部署目录
+        //8.复制文件到部署目录
         String deployDir=AppConstant.CODE_DEPLOY_ROOT_DIR+File.separator+deployKey;
         try {
             FileUtil.copyContent(sourceDir,new File(deployDir),true);
         } catch (IORuntimeException e) {
             throw new RuntimeException(e);
         }
-        //8.更新应用的deployKey 和 部署时间
+        //9.更新应用的deployKey 和 部署时间
         App updateApp=new App();
         updateApp.setId(appId);
         updateApp.setDeployedTime(LocalDateTime.now());
         updateApp.setDeployKey(deployKey);
         boolean flag = this.updateById(updateApp);
         ThrowUtils.throwIf(!flag,ErrorCode.SYSTEM_ERROR,"更新应用部署信息失败");
-        //9.返回可访问的url
+        //10.返回可访问的url
         return AppConstant.CODE_DEPLOY_HOST+"/"+deployKey+"/";
     }
 
