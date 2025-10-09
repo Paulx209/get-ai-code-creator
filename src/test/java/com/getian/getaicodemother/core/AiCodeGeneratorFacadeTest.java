@@ -1,6 +1,9 @@
 package com.getian.getaicodemother.core;
 
+import com.getian.getaicodemother.ai.AiCodeGenTypeRoutingService;
+import com.getian.getaicodemother.ai.AiCodeGeneratorService;
 import com.getian.getaicodemother.model.enums.CodeGenTypeEnum;
+import com.getian.getaicodemother.service.AppService;
 import jakarta.annotation.Resource;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -14,6 +17,9 @@ import java.util.List;
 class AiCodeGeneratorFacadeTest {
     @Resource
     private AiCodeGeneratorFacade aiCodeGeneratorFacade;
+
+    @Resource
+    private AiCodeGenTypeRoutingService aiCodeGenTypeRoutingService;
 
     private Long appId=331377589884493824L;
     @Test
@@ -68,5 +74,13 @@ class AiCodeGeneratorFacadeTest {
     void test1(){
         String property = System.getProperty("user.dir");
         System.out.println(property);
+    }
+
+    @Test
+    void test2(){
+        String userPrompt1="做一个简单的个人介绍页面";
+        CodeGenTypeEnum codeGenTypeEnum = aiCodeGenTypeRoutingService.routeCodeGenType(userPrompt1);
+        String userPrompt2="做一个简单的个人介绍页面，代码不超过100行";
+        System.out.println(codeGenTypeEnum);
     }
 }

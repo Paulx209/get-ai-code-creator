@@ -6,6 +6,7 @@ import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.io.IORuntimeException;
 import cn.hutool.core.util.RandomUtil;
 import cn.hutool.core.util.StrUtil;
+import com.getian.getaicodemother.ai.AiCodeGenTypeRoutingService;
 import com.getian.getaicodemother.core.AiCodeGeneratorFacade;
 import com.getian.getaicodemother.core.builder.VueProjectBuilder;
 import com.getian.getaicodemother.core.handler.StreamHandlerExecutor;
@@ -66,6 +67,8 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
     private VueProjectBuilder vueProjectBuilder;
     @Resource
     private ScreenshotService screenshotService;
+    @Resource
+    private AiCodeGenTypeRoutingService aiCodeGenTypeRoutingService;
 
     /**
      * 新增应用
@@ -77,11 +80,14 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
     public Long insertApp(AppAddRequest addRequest, HttpServletRequest request) {
         User loginUser=(User)request.getSession().getAttribute(UserConstant.USER_LOGIN_STATE);
         ThrowUtils.throwIf(loginUser==null, ErrorCode.NOT_LOGIN_ERROR, "请先登录");
+        //由大模型决定使用哪个代码生成类型！
+        CodeGenTypeEnum codeGenTypeEnum = aiCodeGenTypeRoutingService.routeCodeGenType(addRequest.getPrompt());
+        ThrowUtils.throwIf(codeGenTypeEnum == null, ErrorCode.SYSTEM_ERROR, "无法识别代码生成类型");
         App app=new App();
         app.setInitPrompt(addRequest.getPrompt());
         app.setUserId(loginUser.getId());
         app.setAppName(app.getInitPrompt().substring(0,Math.min(app.getInitPrompt().length(),10)));
-        app.setCodeGenType(CodeGenTypeEnum.VUE_PROJECT.getValue());
+        app.setCodeGenType(codeGenTypeEnum.getValue());
 
         boolean saveApp = save(app);
         ThrowUtils.throwIf(!saveApp, ErrorCode.SYSTEM_ERROR, "新增应用失败");

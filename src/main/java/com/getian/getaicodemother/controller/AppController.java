@@ -3,7 +3,8 @@ package com.getian.getaicodemother.controller;
 
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONUtil;
-import com.fasterxml.jackson.annotation.JsonUnwrapped;
+import com.getian.getaicodemother.ai.AiCodeGenTypeRoutingService;
+import com.getian.getaicodemother.ai.AiCodeGeneratorServiceFactory;
 import com.getian.getaicodemother.annotation.AuthCheck;
 import com.getian.getaicodemother.common.BaseResponse;
 import com.getian.getaicodemother.common.DeleteRequest;
@@ -22,7 +23,6 @@ import com.getian.getaicodemother.service.UserService;
 
 import com.mybatisflex.core.paginate.Page;
 import com.mybatisflex.core.query.QueryWrapper;
-import dev.langchain4j.agent.tool.P;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
@@ -32,7 +32,6 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.log4j.Log4j2;
 
 import org.springframework.beans.BeanUtils;
-import org.springframework.boot.autoconfigure.graphql.GraphQlProperties;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.bind.annotation.*;
