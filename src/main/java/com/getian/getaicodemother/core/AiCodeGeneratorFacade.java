@@ -77,7 +77,7 @@ public class AiCodeGeneratorFacade {
             case VUE_PROJECT -> {
                 TokenStream tokenStream = aiCodeGeneratorService.generateVueProjectCodeStream(appId, userMessage);
                 Flux<String> stringFlux = processTokenStream(tokenStream);
-                yield processCodeStream(stringFlux, codeGenType, appId);
+                yield  processCodeStream(stringFlux,codeGenType,appId);
             }
             default -> {
                 String errorMessage = "不支持的生成类型" + codeGenType.getValue();
@@ -100,10 +100,12 @@ public class AiCodeGeneratorFacade {
             codeBuilder.append(chunk);
         }).doOnComplete(() -> {
             try {
-                String codeStr = codeBuilder.toString();
-                Object parserRes = CodeParserExecutor.executorCodeParser(codeStr, codeGenTypeEnum);
-                File saveDir = CodeFileSaverExecutor.executeFileSave(parserRes, codeGenTypeEnum, appId);
-                log.info("生成代码文件成功，路径为:{}", saveDir.getAbsolutePath());
+                if(!codeGenTypeEnum.equals(CodeGenTypeEnum.VUE_PROJECT)){
+                    String codeStr = codeBuilder.toString();
+                    Object parserRes = CodeParserExecutor.executorCodeParser(codeStr, codeGenTypeEnum);
+                    File saveDir = CodeFileSaverExecutor.executeFileSave(parserRes, codeGenTypeEnum, appId);
+                    log.info("生成代码文件成功，路径为:{}", saveDir.getAbsolutePath());
+                }
             } catch (Exception e) {
                 log.info("生成代码文件失败，{}", e.getMessage());
             }
@@ -131,6 +133,7 @@ public class AiCodeGeneratorFacade {
                         sink.next(JSONUtil.toJsonStr(toolExecutedMessage));
                     })
                     .onCompleteResponse((ChatResponse response) -> {
+                        //todo 另外一种写法
                         sink.complete();
                     })
                     .onError((Throwable error) -> {
