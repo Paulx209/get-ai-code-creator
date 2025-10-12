@@ -1,7 +1,6 @@
 package com.getian.getaicodemother.core.builder;
 
 import cn.hutool.core.util.RuntimeUtil;
-import cn.hutool.core.util.StrUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -14,6 +13,7 @@ public class VueProjectBuilder {
 
     /**
      * 异步构建vue项目
+     *
      * @param projectPath
      */
     public void buildVueProjectAsync(String projectPath) {
@@ -69,15 +69,15 @@ public class VueProjectBuilder {
     }
 
     private boolean execNpmInstallCmd(File projectDir) {
-        String finalCommand = StrUtil.format("%s install", buildCommand("cmd"));
-        boolean finished = executeCommand(projectDir, finalCommand, 120);//2分钟超时
-        return finished;
+        log.info("执行npm install 命令");
+        String finalCommand = String.format("%s install", buildCommand("npm"));
+        return executeCommand(projectDir, finalCommand, 120);//2分钟超时
     }
 
     private boolean execNpmBuild(File projectDir) {
-        String finalCommand = StrUtil.format("%s run build", buildCommand("npm"));
-        boolean finished = executeCommand(projectDir, finalCommand, 120);//2分钟超时
-        return finished;
+        log.info("执行npm run build  命令");
+        String finalCommand = String.format("%s run build", buildCommand("npm"));
+        return executeCommand(projectDir, finalCommand, 120);//2分钟超时
     }
 
     /**
@@ -91,7 +91,10 @@ public class VueProjectBuilder {
     private boolean executeCommand(File workingDir, String command, int timeoutSeconds) {
         try {
             log.info("在目录 {} 中执行命令: {}", workingDir.getAbsolutePath(), command);
-            Process process = RuntimeUtil.exec(null, workingDir, command.split("\\s+"));
+            Process process = RuntimeUtil.exec(
+                    null,
+                    workingDir,
+                    command.split("\\s+"));
             boolean finished = process.waitFor(timeoutSeconds, TimeUnit.SECONDS);
             if (!finished) {
                 log.error("命令执行超时: {}", command);
@@ -119,7 +122,7 @@ public class VueProjectBuilder {
         return command;
     }
 
-    public boolean isWindows() {
-        return System.getProperty("os.name").toLowerCase().equals("windows");
+    private boolean isWindows() {
+        return System.getProperty("os.name").toLowerCase().contains("windows");
     }
 }
