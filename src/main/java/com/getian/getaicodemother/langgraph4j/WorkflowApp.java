@@ -20,7 +20,7 @@ public class WorkflowApp {
         // 创建工作流图
         CompiledGraph<MessagesState<String>> workflow = new MessagesStateGraph<String>()
                 // 添加节点 - 使用真实的工作节点
-                .addNode("image_collector", ImageControllerNode.create())
+                .addNode("image_collector", ImageCollectorNode.create())
                 .addNode("prompt_enhancer", PromptEnhancerNode.create())
                 .addNode("router", RouterNode.create())
                 .addNode("code_generator", CodeGeneratorNode.create())
